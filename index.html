@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>TourSplit — Tour expense splitter</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">↗</span><div><strong>TourSplit</strong><small>Travel expenses, made simple</small></div></div>
+    <button id="printBtn" class="button button-light" type="button">🖨 Print report</button>
+  </header>
+
+  <main class="app-shell">
+    <section class="hero">
+      <div><p class="eyebrow">Your travel hub</p><h1>Tour expense splitter</h1><p class="muted">Create a tour, invite your crew, and keep every expense transparent.</p></div>
+      <button id="newTourBtn" class="button button-primary" type="button">＋ New tour</button>
+    </section>
+
+    <section class="stats-grid" aria-label="Tour summary">
+      <article class="stat-card"><span class="stat-icon teal">◎</span><div><span class="label">Total spent</span><strong id="totalSpent">₹0.00</strong></div></article>
+      <article class="stat-card"><span class="stat-icon purple">♟</span><div><span class="label">Members</span><strong id="memberCount">0</strong></div></article>
+      <article class="stat-card"><span class="stat-icon orange">▣</span><div><span class="label">Expenses</span><strong id="expenseCount">0</strong></div></article>
+      <article class="stat-card"><span class="stat-icon blue">↔</span><div><span class="label">Avg. per member</span><strong id="averageSpent">₹0.00</strong></div></article>
+    </section>
+
+    <div id="emptyState" class="empty-state card"><div class="empty-icon">✈</div><h2>Start your first tour</h2><p>Create a tour to begin adding members and sharing expenses.</p><button class="button button-primary" id="emptyNewTour" type="button">Create a tour</button></div>
+
+    <div id="dashboard" hidden>
+      <section class="content-grid">
+        <article class="card panel"><div class="panel-heading"><div><p class="eyebrow">Active tour</p><h2 id="tourTitle">—</h2><p class="muted" id="tourMeta">—</p></div><div class="heading-actions"><button id="editTourBtn" class="icon-button" title="Edit tour">✎</button><button id="deleteTourBtn" class="icon-button danger" title="Delete tour">⌫</button></div></div><div class="tour-note" id="tourDescription"></div></article>
+        <article class="card panel"><div class="panel-heading"><h2>Balance summary</h2><span class="pill" id="settledCount">0 settled</span></div><div id="balanceList" class="balance-list"></div></article>
+      </section>
+
+      <section class="tabs" role="tablist"><button class="tab active" data-tab="expenses" role="tab">Expenses</button><button class="tab" data-tab="members" role="tab">Members</button></section>
+      <section id="expensesTab" class="card panel tab-panel"><div class="panel-heading"><div><h2>Expenses</h2><p class="muted">Track who paid for what.</p></div><button id="addExpenseBtn" class="button button-primary" type="button">＋ Add expense</button></div><div id="expenseList" class="table-wrap"></div></section>
+      <section id="membersTab" class="card panel tab-panel" hidden><div class="panel-heading"><div><h2>Members</h2><p class="muted">Everyone sharing this tour.</p></div><button id="addMemberBtn" class="button button-primary" type="button">＋ Add member</button></div><div id="memberList" class="member-list"></div></section>
+    </div>
+  </main>
+
+  <div id="modal" class="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true"><div class="modal-header"><h2 id="modalTitle">Create a tour</h2><button id="closeModal" class="icon-button" type="button">×</button></div><form id="modalForm"></form></div></div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
