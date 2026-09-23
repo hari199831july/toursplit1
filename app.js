@@ -1,6 +1,7 @@
 const KEY='toursplit-data-v1';
 const money = n => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const expenseCategories = ['food', 'fuel', 'stay', 'event', 'others'];
 
 let state = JSON.parse(localStorage.getItem(KEY) || 'null') || { tour: null, members: [], expenses: [] };
 let editing = { type: null, id: null };
@@ -113,7 +114,7 @@ function render() {
     const payer = state.members.find(m => m.id === e.paidBy);
     return `
       <div class="expense-row">
-        <span><strong>${esc(e.description)}</strong><small>${e.date || ''}</small></span>
+        <span><strong>${esc(e.description)}</strong><small>${e.date || ''}${e.category ? ` · ${esc(e.category)}` : ''}</small></span>
         <span>${esc(payer?.name || 'Unknown')}</span>
         <strong>${money(e.amount)}</strong>
         <span class="row-actions">
@@ -185,6 +186,9 @@ function expenseForm(e = {}) {
   const selectOptions = state.members.map(m => `
     <option value="${m.id}" ${m.id === e.paidBy ? 'selected' : ''}>${esc(m.name)}</option>
   `).join('');
+  const categoryOptions = expenseCategories.map(category => `
+    <option value="${category}" ${(e.category || 'others') === category ? 'selected' : ''}>${category[0].toUpperCase() + category.slice(1)}</option>
+  `).join('');
 
   return `
     <div class="field">
@@ -195,6 +199,7 @@ function expenseForm(e = {}) {
       <div class="field"><label>Amount *</label><input name="amount" required type="number" min="0.01" step="0.01" value="${esc(e.amount)}"></div>
       <div class="field"><label>Paid by *</label><select name="paidBy" required>${selectOptions}</select></div>
     </div>
+    <div class="field"><label>Category *</label><select name="category" required>${categoryOptions}</select></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${esc(e.date || new Date().toISOString().slice(0, 10))}"></div>
   `;
 }
