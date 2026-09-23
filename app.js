@@ -110,11 +110,12 @@ function render() {
     <div class="all-settled"><span>✓</span><div><strong>Everyone is settled</strong><p>No payments are needed right now.</p></div></div>
   `;
 
-  $('#expenseList').innerHTML = state.expenses.length ? `<div class="expense-header"><span>Description</span><span>Paid by</span><span>Amount</span><span></span></div>` + state.expenses.map(e => {
+  $('#expenseList').innerHTML = state.expenses.length ? `<div class="expense-header"><span>Description</span><span>Category</span><span>Paid by</span><span>Amount</span><span></span></div>` + state.expenses.map(e => {
     const payer = state.members.find(m => m.id === e.paidBy);
     return `
       <div class="expense-row">
-        <span><strong>${esc(e.description)}</strong><small>${e.date || ''}${e.category ? ` · ${esc(e.category)}` : ''}</small></span>
+        <span><strong>${esc(e.description)}</strong><small>${e.date || ''}</small></span>
+        <span>${esc(e.category || 'others')}</span>
         <span>${esc(payer?.name || 'Unknown')}</span>
         <strong>${money(e.amount)}</strong>
         <span class="row-actions">
