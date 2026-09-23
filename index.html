@@ -21,7 +21,13 @@
       <section id="membersTab" class="card panel tab-panel" hidden><div class="panel-heading"><div><h2>Members</h2><p class="muted">Everyone sharing this tour.</p></div><button id="addMemberBtn" class="button button-primary" type="button">＋ Add member</button></div><div id="memberList" class="member-list"></div></section>
     </div>
   </main>
-  <div id="modal" class="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true"><div class="modal-header"><h2 id="modalTitle">Create a tour</h2><button id="closeModal" class="icon-button" type="button">×</button></div><form id="modalForm"></form></div></div><div id="toast" class="toast" role="status"></div>
+  <div id="modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header"><h2 id="modalTitle">Create a tour</h2><button id="closeModal" class="icon-button" type="button" aria-label="Close">×</button></div>
+      <form id="modalForm" novalidate></form>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
   <script src="app.js"></script>
 </body>
 </html>
