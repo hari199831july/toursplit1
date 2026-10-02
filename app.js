@@ -110,21 +110,37 @@ function render() {
     <div class="all-settled"><span>✓</span><div><strong>Everyone is settled</strong><p>No payments are needed right now.</p></div></div>
   `;
 
-  $('#expenseList').innerHTML = state.expenses.length ? `<div class="expense-header"><span>Description</span><span>Category</span><span>Paid by</span><span>Amount</span><span></span></div>` + state.expenses.map(e => {
-    const payer = state.members.find(m => m.id === e.paidBy);
-    return `
-      <div class="expense-row">
-        <span><strong>${esc(e.description)}</strong><small>${e.date || ''}</small></span>
-        <span>${esc(e.category || 'others')}</span>
-        <span>${esc(payer?.name || 'Unknown')}</span>
-        <strong>${money(e.amount)}</strong>
-        <span class="row-actions">
-          <button type="button" onclick="window.editExpense('${e.id}')">Edit</button>
-          <button type="button" onclick="window.deleteExpense('${e.id}')">Delete</button>
-        </span>
-      </div>
-    `;
-  }).join('') : '<p class="muted empty-line">No expenses added yet.</p>';
+  $('#expenseList').innerHTML = state.expenses.length ? `<div class="expense-header"><span>Description</span><span>Category</span><span>Paid by</span><span>Amount</span><span></span></div>` + 
+    [...state.expenses]
+      .sort((a, b) => {
+        const memberA = state.members.find(m => m.id === a.paidBy);
+        const memberB = state.members.find(m => m.id === b.paidBy);
+        const paidByA = (memberA?.name || 'Unknown').toLowerCase();
+        const paidByB = (memberB?.name || 'Unknown').toLowerCase();
+        
+        if (paidByA !== paidByB) return paidByA.localeCompare(paidByB);
+
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+        return Number(a.amount || 0) - Number(b.amount || 0);
+      })
+      .map(e => {
+        const payer = state.members.find(m => m.id === e.paidBy);
+        return `
+          <div class="expense-row">
+            <span><strong>${esc(e.description)}</strong><small>${e.date || ''}</small></span>
+            <span>${esc(e.category || 'others')}</span>
+            <span>${esc(payer?.name || 'Unknown')}</span>
+            <strong>${money(e.amount)}</strong>
+            <span class="row-actions">
+              <button type="button" onclick="window.editExpense('${e.id}')">Edit</button>
+              <button type="button" onclick="window.deleteExpense('${e.id}')">Delete</button>
+            </span>
+          </div>
+        `;
+      }).join('') : '<p class="muted empty-line">No expenses added yet.</p>';
 
   $('#memberList').innerHTML = state.members.length ? state.members.map(m => `
     <div class="member-row">
