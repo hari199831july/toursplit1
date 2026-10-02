@@ -1,31 +1,39 @@
-const KEY='toursplit-data-v1';
+const KEY = 'toursplit-data-v2';
 const money = n => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const expenseCategories = ['food', 'fuel', 'stay', 'event', 'others'];
 
-let state = JSON.parse(localStorage.getItem(KEY) || 'null') || { tour: null, members: [], expenses: [] };
+let state = JSON.parse(localStorage.getItem(KEY) || 'null') || { tours: [], activeTourId: null };
 let editing = { type: null, id: null };
 
 const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
 const initials = name => (name || '?').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
 
 const modal = $('#modal');
 const modalForm = $('#modalForm');
 
+function getActiveTour() {
+  return state.tours.find(t => t.id === state.activeTourId) || null;
+}
+
 function getSummary() {
-  const total = state.expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const share = state.members.length ? total / state.members.length : 0;
+  const tour = getActiveTour();
+  if (!tour) return { total: 0, share: 0, paid: {}, balances: [] };
+
+  const total = tour.expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const share = tour.members.length ? total / tour.members.length : 0;
   const paid = {};
 
-  state.members.forEach(m => { paid[m.id] = 0; });
-  state.expenses.forEach(e => {
+  tour.members.forEach(m => { paid[m.id] = 0; });
+  tour.expenses.forEach(e => {
     if (paid[e.paidBy] !== undefined) {
       paid[e.paidBy] += Number(e.amount || 0);
     }
   });
 
-  const balances = state.members.map(m => ({
+  const balances = tour.members.map(m => ({
     ...m,
     paid: paid[m.id] || 0,
     balance: (paid[m.id] || 0) - share
@@ -61,21 +69,43 @@ function buildSettlement(balances) {
   return transfers;
 }
 
+function renderSidebar() {
+  const toursList = $('#toursList');
+  toursList.innerHTML = state.tours.length
+    ? state.tours.map(t => `
+      <div class="tour-item ${t.id === state.activeTourId ? 'active' : ''}" data-tour-id="${t.id}">
+        <div class="tour-item-content">
+          <strong>${esc(t.name)}</strong>
+          <small>${t.members.length} members · ${t.expenses.length} expenses</small>
+        </div>
+        <button class="tour-item-delete" onclick="window.deleteTourConfirm('${t.id}')">×</button>
+      </div>
+    `).join('')
+    : '<p class="muted" style="padding: 12px 0; text-align: center; font-size: 12px;">No tours yet</p>';
+}
+
 function render() {
-  const active = !!state.tour;
-  $('#emptyState').hidden = active;
+  const tour = getActiveTour();
+  const active = !!tour;
+
+  $('#heroSection').hidden = active;
+  $('#statsGrid').hidden = !active;
   $('#dashboard').hidden = !active;
+
+  renderSidebar();
+
+  if (!active) {
+    return;
+  }
 
   const summary = getSummary();
   $('#totalSpent').textContent = money(summary.total);
-  $('#memberCount').textContent = state.members.length;
-  $('#expenseCount').textContent = state.expenses.length;
+  $('#memberCount').textContent = tour.members.length;
+  $('#expenseCount').textContent = tour.expenses.length;
   $('#averageSpent').textContent = money(summary.share);
 
-  if (!active) return;
-
-  $('#tourTitle').textContent = state.tour.name;
-  $('#tourMeta').textContent = `${state.tour.start || 'No start date'}${state.tour.end ? ' → ' + state.tour.end : ''} · ${state.members.length} members`;
+  $('#tourTitle').textContent = tour.name;
+  $('#tourMeta').textContent = `${tour.start || 'No start date'}${tour.end ? ' → ' + tour.end : ''} · ${tour.members.length} members`;
 
   const settled = summary.balances.filter(x => Math.abs(x.balance) < 0.01).length;
   $('#settledCount').textContent = `${settled} settled`;
@@ -110,14 +140,14 @@ function render() {
     <div class="all-settled"><span>✓</span><div><strong>Everyone is settled</strong><p>No payments are needed right now.</p></div></div>
   `;
 
-  $('#expenseList').innerHTML = state.expenses.length ? `<div class="expense-header"><span>Description</span><span>Category</span><span>Paid by</span><span>Amount</span><span></span></div>` + 
-    [...state.expenses]
+  $('#expenseList').innerHTML = tour.expenses.length ? `<div class="expense-header"><span>Description</span><span>Category</span><span>Paid by</span><span>Amount</span><span></span></div>` +
+    [...tour.expenses]
       .sort((a, b) => {
-        const memberA = state.members.find(m => m.id === a.paidBy);
-        const memberB = state.members.find(m => m.id === b.paidBy);
+        const memberA = tour.members.find(m => m.id === a.paidBy);
+        const memberB = tour.members.find(m => m.id === b.paidBy);
         const paidByA = (memberA?.name || 'Unknown').toLowerCase();
         const paidByB = (memberB?.name || 'Unknown').toLowerCase();
-        
+
         if (paidByA !== paidByB) return paidByA.localeCompare(paidByB);
 
         const dateA = a.date || '';
@@ -127,7 +157,7 @@ function render() {
         return Number(a.amount || 0) - Number(b.amount || 0);
       })
       .map(e => {
-        const payer = state.members.find(m => m.id === e.paidBy);
+        const payer = tour.members.find(m => m.id === e.paidBy);
         return `
           <div class="expense-row">
             <span><strong>${esc(e.description)}</strong><small>${e.date || ''}</small></span>
@@ -142,7 +172,7 @@ function render() {
         `;
       }).join('') : '<p class="muted empty-line">No expenses added yet.</p>';
 
-  $('#memberList').innerHTML = state.members.length ? state.members.map(m => `
+  $('#memberList').innerHTML = tour.members.length ? tour.members.map(m => `
     <div class="member-row">
       <span class="avatar">${initials(m.name)}</span>
       <div class="row-main"><strong>${esc(m.name)}</strong><small>${esc(m.contact || '')}</small></div>
@@ -173,15 +203,34 @@ function closeModal() {
   editing = { type: null, id: null };
 }
 
+function closeSidebar() {
+  const sidebar = $('#sidebar');
+  const overlay = $('#sidebarOverlay');
+  sidebar.classList.remove('open');
+  overlay.hidden = true;
+}
+
+function toggleSidebar() {
+  const sidebar = $('#sidebar');
+  const overlay = $('#sidebarOverlay');
+  const isOpen = sidebar.classList.contains('open');
+  if (isOpen) {
+    closeSidebar();
+  } else {
+    sidebar.classList.add('open');
+    overlay.hidden = false;
+  }
+}
+
 function tourForm(t = {}) {
   return `
     <div class="field">
       <label>Tour name *</label>
-      <input name="name" required value="${esc(t.name)}" placeholder="e.g. Kerala trip 2026">
+      <input name="name" required value="${esc(t.name || '')}" placeholder="e.g. Kerala trip 2026">
     </div>
     <div class="form-grid">
-      <div class="field"><label>Start date</label><input name="start" type="date" value="${esc(t.start)}"></div>
-      <div class="field"><label>End date</label><input name="end" type="date" value="${esc(t.end)}"></div>
+      <div class="field"><label>Start date</label><input name="start" type="date" value="${esc(t.start || '')}"></div>
+      <div class="field"><label>End date</label><input name="end" type="date" value="${esc(t.end || '')}"></div>
     </div>
   `;
 }
@@ -190,17 +239,20 @@ function memberForm(m = {}) {
   return `
     <div class="field">
       <label>Name *</label>
-      <input name="name" required value="${esc(m.name)}" placeholder="e.g. Rahul">
+      <input name="name" required value="${esc(m.name || '')}" placeholder="e.g. Rahul">
     </div>
     <div class="field">
       <label>Email or phone</label>
-      <input name="contact" value="${esc(m.contact)}" placeholder="e.g. rahul@example.com">
+      <input name="contact" value="${esc(m.contact || '')}" placeholder="e.g. rahul@example.com">
     </div>
   `;
 }
 
 function expenseForm(e = {}) {
-  const selectOptions = state.members.map(m => `
+  const tour = getActiveTour();
+  if (!tour) return '';
+
+  const selectOptions = tour.members.map(m => `
     <option value="${m.id}" ${m.id === e.paidBy ? 'selected' : ''}>${esc(m.name)}</option>
   `).join('');
   const categoryOptions = expenseCategories.map(category => `
@@ -210,10 +262,10 @@ function expenseForm(e = {}) {
   return `
     <div class="field">
       <label>Description *</label>
-      <input name="description" required value="${esc(e.description)}" placeholder="e.g. Hotel booking">
+      <input name="description" required value="${esc(e.description || '')}" placeholder="e.g. Hotel booking">
     </div>
     <div class="form-grid">
-      <div class="field"><label>Amount *</label><input name="amount" required type="number" min="0.01" step="0.01" value="${esc(e.amount)}"></div>
+      <div class="field"><label>Amount *</label><input name="amount" required type="number" min="0.01" step="0.01" value="${esc(e.amount || '')}"></div>
       <div class="field"><label>Paid by *</label><select name="paidBy" required>${selectOptions}</select></div>
     </div>
     <div class="field"><label>Category *</label><select name="category" required>${categoryOptions}</select></div>
@@ -235,59 +287,99 @@ function save() {
 }
 
 window.editMember = function(id) {
+  const tour = getActiveTour();
+  if (!tour) return;
   editing = { type: 'member', id };
-  const member = state.members.find(m => m.id === id) || {};
+  const member = tour.members.find(m => m.id === id) || {};
   openModal('Edit member', memberForm(member));
 };
 
 window.deleteMember = function(id) {
+  const tour = getActiveTour();
+  if (!tour) return;
   if (confirm('Delete this member? Expenses paid by them will remain as Unknown.')) {
-    state.members = state.members.filter(m => m.id !== id);
-    state.expenses.forEach(e => { if (e.paidBy === id) e.paidBy = 'unknown'; });
+    tour.members = tour.members.filter(m => m.id !== id);
+    tour.expenses.forEach(e => { if (e.paidBy === id) e.paidBy = 'unknown'; });
     save();
     showToast('Member deleted');
   }
 };
 
 window.editExpense = function(id) {
+  const tour = getActiveTour();
+  if (!tour) return;
   editing = { type: 'expense', id };
-  const expense = state.expenses.find(e => e.id === id) || {};
+  const expense = tour.expenses.find(e => e.id === id) || {};
   openModal('Edit expense', expenseForm(expense));
 };
 
 window.deleteExpense = function(id) {
+  const tour = getActiveTour();
+  if (!tour) return;
   if (confirm('Delete this expense?')) {
-    state.expenses = state.expenses.filter(e => e.id !== id);
+    tour.expenses = tour.expenses.filter(e => e.id !== id);
     save();
     showToast('Expense deleted');
   }
 };
 
-$('#newTourBtn').onclick = $('#emptyNewTour').onclick = () => {
-  editing = { type: 'tour' };
-  openModal(state.tour ? 'Edit tour' : 'Create a tour', tourForm(state.tour || {}));
-};
-
-$('#editTourBtn').onclick = () => {
-  editing = { type: 'tour' };
-  openModal('Edit tour', tourForm(state.tour || {}));
-};
-
-$('#deleteTourBtn').onclick = () => {
+window.deleteTourConfirm = function(tourId) {
   if (confirm('Delete this tour and all its members and expenses?')) {
-    state = { tour: null, members: [], expenses: [] };
+    state.tours = state.tours.filter(t => t.id !== tourId);
+    if (state.activeTourId === tourId) {
+      state.activeTourId = state.tours.length > 0 ? state.tours[0].id : null;
+    }
     save();
     showToast('Tour deleted');
   }
 };
 
+window.selectTour = function(tourId) {
+  state.activeTourId = tourId;
+  closeSidebar();
+  save();
+};
+
+// Event listeners
+$('#menuBtn').onclick = toggleSidebar;
+$('#closeSidebarBtn').onclick = closeSidebar;
+$('#sidebarOverlay').onclick = closeSidebar;
+
+// Tour creation
+$('#newTourSidebarBtn').onclick = () => {
+  editing = { type: 'tour' };
+  openModal('Create a new tour', tourForm());
+};
+
+$('#emptyNewTour').onclick = () => {
+  editing = { type: 'tour' };
+  openModal('Create a new tour', tourForm());
+};
+
+$('#editTourBtn').onclick = () => {
+  const tour = getActiveTour();
+  if (!tour) return;
+  editing = { type: 'tour', id: tour.id };
+  openModal('Edit tour', tourForm(tour));
+};
+
+$('#deleteTourBtn').onclick = () => {
+  const tour = getActiveTour();
+  if (!tour) return;
+  window.deleteTourConfirm(tour.id);
+};
+
 $('#addMemberBtn').onclick = () => {
+  const tour = getActiveTour();
+  if (!tour) return;
   editing = { type: 'member' };
   openModal('Add member', memberForm());
 };
 
 $('#addExpenseBtn').onclick = () => {
-  if (!state.members.length) return showToast('Add a member first');
+  const tour = getActiveTour();
+  if (!tour) return;
+  if (!tour.members.length) return showToast('Add a member first');
   editing = { type: 'expense' };
   openModal('Add expense', expenseForm());
 };
@@ -296,28 +388,61 @@ $('#closeModal').onclick = closeModal;
 $('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
 document.addEventListener('click', e => { if (e.target.id === 'cancelModal') closeModal(); });
 
+// Tour list delegation
+document.addEventListener('click', e => {
+  if (e.target.closest('.tour-item:not(.tour-item-delete)')) {
+    const tourId = e.target.closest('.tour-item').dataset.tourId;
+    window.selectTour(tourId);
+  }
+});
+
 $('#modalForm').onsubmit = e => {
   e.preventDefault();
   const d = Object.fromEntries(new FormData(e.target));
 
   if (editing.type === 'tour') {
-    state.tour = { ...(state.tour || {}), ...d };
+    if (editing.id) {
+      const tour = state.tours.find(t => t.id === editing.id);
+      if (tour) {
+        tour.name = d.name;
+        tour.start = d.start;
+        tour.end = d.end;
+      }
+    } else {
+      const newTour = {
+        id: uid(),
+        name: d.name,
+        start: d.start,
+        end: d.end,
+        members: [],
+        expenses: []
+      };
+      state.tours.push(newTour);
+      state.activeTourId = newTour.id;
+    }
+  }
+
+  const tour = getActiveTour();
+  if (!tour) {
+    save();
+    closeModal();
+    return showToast('Saved successfully');
   }
 
   if (editing.type === 'member') {
     if (editing.id) {
-      state.members = state.members.map(m => m.id === editing.id ? { ...m, ...d } : m);
+      tour.members = tour.members.map(m => m.id === editing.id ? { ...m, ...d } : m);
     } else {
-      state.members.push({ id: uid(), ...d });
+      tour.members.push({ id: uid(), ...d });
     }
   }
 
   if (editing.type === 'expense') {
     d.amount = Number(d.amount);
     if (editing.id) {
-      state.expenses = state.expenses.map(x => x.id === editing.id ? { ...x, ...d } : x);
+      tour.expenses = tour.expenses.map(x => x.id === editing.id ? { ...x, ...d } : x);
     } else {
-      state.expenses.push({ id: uid(), ...d });
+      tour.expenses.push({ id: uid(), ...d });
     }
   }
 
@@ -336,4 +461,6 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 $('#printBtn').onclick = () => window.print();
+
+// Initialize
 render();

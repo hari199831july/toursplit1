@@ -8,25 +8,148 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar"><div class="brand"><span class="brand-mark">↗</span><div><strong>Hari's Tour Split App</strong><small>Travel expenses, made simple</small></div></div><button id="printBtn" class="button button-light" type="button">🖨 Print report</button></header>
-  <main class="app-shell">
-    <section class="hero"><div><p class="eyebrow">Your travel hub</p><h1>Tour expense splitter</h1><p class="muted">Create a tour, invite your crew, and keep every expense transparent.</p></div><button id="newTourBtn" class="button button-primary" type="button">＋ New tour</button></section>
-    <section class="stats-grid" aria-label="Tour summary"><article class="stat-card"><span class="stat-icon teal">◎</span><div><span class="label">Total spent</span><strong id="totalSpent">₹0.00</strong></div></article><article class="stat-card"><span class="stat-icon purple">♟</span><div><span class="label">Members</span><strong id="memberCount">0</strong></div></article><article class="stat-card"><span class="stat-icon orange">▣</span><div><span class="label">Expenses</span><strong id="expenseCount">0</strong></div></article><article class="stat-card"><span class="stat-icon blue">↔</span><div><span class="label">Avg. per member</span><strong id="averageSpent">₹0.00</strong></div></article></section>
-    <div id="emptyState" class="empty-state card"><div class="empty-icon">✈</div><h2>Start your first tour</h2><p>Create a tour to begin adding members and sharing expenses.</p><button id="emptyNewTour" class="button button-primary" type="button">Create a tour</button></div>
-    <div id="dashboard" hidden>
-      <section class="content-grid"><article class="card panel"><div class="panel-heading"><div><p class="eyebrow">Active tour</p><h2 id="tourTitle">—</h2><p class="muted" id="tourMeta">—</p></div><div class="heading-actions"><button id="editTourBtn" class="button secondary" type="button">Edit</button><button id="deleteTourBtn" class="icon-button danger" type="button" aria-label="Delete tour">×</button></div></div><div class="tour-note">Each expense is split equally between all current members.</div></article><article class="card panel"><div class="panel-heading"><h2>Balance summary</h2><span class="pill" id="settledCount">0 settled</span></div><div id="balanceList" class="balance-list"></div></article></section>
-      <section class="card panel settlement-panel"><div class="panel-heading"><div><h2>Who owes whom</h2><p class="muted">Your fair share is compared with what you actually paid.</p></div><span class="pill accent">Settlement plan</span></div><div id="settlementTable" class="settlement-table"></div></section>
-      <section class="tabs" role="tablist"><button class="tab active" data-tab="expenses" role="tab">Expenses</button><button class="tab" data-tab="members" role="tab">Members</button></section>
-      <section id="expensesTab" class="card panel tab-panel"><div class="panel-heading"><div><h2>Expenses</h2><p class="muted">Track who paid for what.</p></div><button id="addExpenseBtn" class="button button-primary" type="button">＋ Add expense</button></div><div id="expenseList" class="expense-list"></div></section>
-      <section id="membersTab" class="card panel tab-panel" hidden><div class="panel-heading"><div><h2>Members</h2><p class="muted">Everyone sharing this tour.</p></div><button id="addMemberBtn" class="button button-primary" type="button">＋ Add member</button></div><div id="memberList" class="member-list"></div></section>
+  <div class="app-container">
+    <!-- Sidebar Menu -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>Tours</h3>
+        <button id="closeSidebarBtn" class="icon-button" aria-label="Close menu">×</button>
+      </div>
+      <button id="newTourSidebarBtn" class="button button-primary" style="width: 100%; margin-bottom: 15px;">+ New Tour</button>
+      <div id="toursList" class="tours-list"></div>
+    </aside>
+
+    <!-- Overlay for mobile -->
+    <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button id="menuBtn" class="icon-button menu-btn" aria-label="Toggle menu">☰</button>
+        <div class="brand">
+          <span class="brand-mark">↗</span>
+          <div>
+            <strong>Hari's Tour Split App</strong>
+            <small>Travel expenses, made simple</small>
+          </div>
+        </div>
+        <button id="printBtn" class="icon-button" aria-label="Print">🖨</button>
+      </header>
+
+      <main class="app-shell">
+        <section class="hero" id="heroSection">
+          <div>
+            <p class="eyebrow">Your travel hub</p>
+            <h1>Tour expense splitter</h1>
+            <p class="muted">Create a tour, invite your crew, and keep every expense transparent.</p>
+          </div>
+          <button id="emptyNewTour" class="button button-primary">Create your first tour</button>
+        </section>
+
+        <section class="stats-grid" id="statsGrid" aria-label="Tour summary" hidden>
+          <article class="stat-card">
+            <span class="stat-icon teal">◎</span>
+            <div>
+              <span class="label">Total spent</span>
+              <strong id="totalSpent">₹0.00</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon purple">👥</span>
+            <div>
+              <span class="label">Members</span>
+              <strong id="memberCount">0</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon orange">📝</span>
+            <div>
+              <span class="label">Expenses</span>
+              <strong id="expenseCount">0</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon blue">🍽️</span>
+            <div>
+              <span class="label">Average spent</span>
+              <strong id="averageSpent">₹0.00</strong>
+            </div>
+          </article>
+        </section>
+
+        <div id="dashboard" hidden>
+          <section class="content-grid">
+            <article class="card panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Active tour</p>
+                  <h2 id="tourTitle">—</h2>
+                  <p class="muted" id="tourMeta">—</p>
+                </div>
+                <div class="heading-actions">
+                  <button id="editTourBtn" class="button button-light">Edit</button>
+                  <button id="deleteTourBtn" class="button danger">Delete</button>
+                </div>
+              </div>
+              <div class="tour-note">
+                <strong id="settledCount">0 settled</strong> — Keep track of who needs to pay whom.
+              </div>
+            </article>
+          </section>
+
+          <section class="card panel settlement-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Who owes whom</h2>
+                <p class="muted">Your fair share is compared with what you actually paid.</p>
+              </div>
+              <span></span>
+            </div>
+            <div id="balanceList"></div>
+            <div id="settlementTable" class="settlement-table"></div>
+          </section>
+
+          <section class="tabs" role="tablist">
+            <button class="tab active" data-tab="expenses" role="tab">Expenses</button>
+            <button class="tab" data-tab="members" role="tab">Members</button>
+          </section>
+
+          <section id="expensesTab" class="card panel tab-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Expenses</h2>
+                <p class="muted">Track who paid for what.</p>
+              </div>
+              <button id="addExpenseBtn" class="button button-light">+ Add</button>
+            </div>
+            <div id="expenseList"></div>
+          </section>
+
+          <section id="membersTab" class="card panel tab-panel" hidden>
+            <div class="panel-heading">
+              <div>
+                <h2>Members</h2>
+                <p class="muted">Everyone sharing this tour.</p>
+              </div>
+              <button id="addMemberBtn" class="button button-light">+ Add</button>
+            </div>
+            <div id="memberList"></div>
+          </section>
+        </div>
+      </main>
     </div>
-  </main>
+  </div>
+
+  <!-- Modal -->
   <div id="modal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-header"><h2 id="modalTitle">Create a tour</h2><button id="closeModal" class="icon-button" type="button" aria-label="Close">×</button></div>
+      <div class="modal-header">
+        <h2 id="modalTitle">Create a tour</h2>
+        <button id="closeModal" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
       <form id="modalForm" novalidate></form>
     </div>
   </div>
+
   <div id="toast" class="toast" role="status"></div>
   <script src="app.js"></script>
 </body>
